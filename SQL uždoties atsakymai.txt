@@ -1,0 +1,33 @@
+1.SELECT item_name, SUM(amount) AS total_revenue
+FROM bill_item
+GROUP BY item_name
+ORDER BY total_revenue DESC
+LIMIT 5;
+
+2.SELECT client_name, client_surname, MONTH(bill_datetime) AS payment_month
+FROM bills
+JOIN clients ON bills.client_id = clients.client_id
+GROUP BY clients.client_id, payment_month
+HAVING SUM(amount_due) > 10000;
+
+3.SELECT
+    client_name,
+    client_surname,
+    AVG(DATEDIFF(bill_datetime, prev_bill_datetime)) AS avg_client_bill_interval,
+    MAX(bill_number) AS last_bill_number,
+    MAX(amount_due) AS last_bill_due_amount,
+    GROUP_CONCAT(item_name ORDER BY bi.bill_item_id ASC SEPARATOR ', ') AS last_bill_item_list
+FROM (
+    SELECT
+        clients.client_name,
+        clients.client_surname,
+        bills.bill_datetime,
+        LAG(bills.bill_datetime) OVER (PARTITION BY clients.client_id ORDER BY bills.bill_datetime) AS prev_bill_datetime,
+        bills.bill_number,
+        bills.amount_due,
+        bill_item.item_name
+    FROM clients
+    LEFT JOIN bills ON clients.client_id = bills.client_id
+    LEFT JOIN bill_item ON bills.bill_id = bill_item.bill_id
+) AS subquery
+GROUP BY client_name, client_surname;
